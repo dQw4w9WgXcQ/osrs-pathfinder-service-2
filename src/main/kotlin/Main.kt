@@ -18,10 +18,6 @@ import kotlin.system.exitProcess
 
 val DEFAULT_AGENT = Agent(99, null, null)
 
-/*
-note to self:
-letsencrypt requires port 80 to renew certs, but we are using port 80 already.  every 90 days i need to stop the server and rewnew
- */
 fun main(args: Array<String>) {
     println("================Starting server================")
 
@@ -45,6 +41,7 @@ fun main(args: Array<String>) {
                     "$certDir/fullchain.pem",
                     "$certDir/privkey.pem"
                 )
+                it.insecurePort = 8080
             })
         }
 
