@@ -1,6 +1,7 @@
 import dev.dqw4w9wgxcq.pathfinder.commons.domain.Agent
 import dev.dqw4w9wgxcq.pathfinder.commons.domain.Position
 import dev.dqw4w9wgxcq.pathfinder.pathfinding.Pathfinding
+import dev.dqw4w9wgxcq.pathfinder.pathfinding.PathfindingResult
 import dev.dqw4w9wgxcq.pathfinder.pathfinding.store.GraphStore
 import dev.dqw4w9wgxcq.pathfinder.pathfinding.store.LinkStore
 import io.javalin.Javalin
@@ -14,9 +15,17 @@ import org.apache.commons.cli.ParseException
 import java.io.File
 import java.io.FileInputStream
 import java.util.Date
+import java.util.concurrent.ExecutionException
+import java.util.concurrent.Executors
+import java.util.concurrent.TimeoutException
 import kotlin.system.exitProcess
 
+const val PATHFINDING_TIMEOUT = 10L//seconds
 val DEFAULT_AGENT = Agent(99, null, null)
+
+data class PathReq(val start: Position, val finish: Position, val agent: Agent?)
+class PathfindingTimeoutException(req: PathReq) :
+    RuntimeException("pathfinding timed out for request: $req")
 
 fun main(args: Array<String>) {
     println("================Starting server================")
@@ -65,6 +74,7 @@ fun main(args: Array<String>) {
     val links = LinkStore.load(FileInputStream(linkFile)).links
     val graphStore = GraphStore.load(FileInputStream(graphFile), links)
     val pathfinding = Pathfinding.create(graphStore)
+    val exe = Executors.newFixedThreadPool(4)//4 vcpu vps
 
     javalin
         .get("/") {
@@ -73,7 +83,7 @@ fun main(args: Array<String>) {
         .post("/request-path") { ctx ->
             println(Date().toString() + " - " + ctx.ip() + " " + ctx.userAgent() + " " + ctx.header("X-Forwarded-For") + "\n" + ctx.body())
 
-            data class Req(val start: Position, val finish: Position, val agent: Agent?)
+            ctx.header("Access-Control-Max-Age", "600")
 
             //todo: currently deserializes incorrectly if a nested primitive field is missing (finish.y will be 0)
             // {
@@ -87,13 +97,31 @@ fun main(args: Array<String>) {
             //        "plane": 0
             //    }
             // }
-            val req = ctx.bodyValidator<Req>().get()
+            val req = ctx.bodyValidator<PathReq>().get()
 
-            val pathfindingResult = pathfinding
-                .findPath(req.start, req.finish, req.agent ?: DEFAULT_AGENT)
+            val job = exe.submit<PathfindingResult> {
+                pathfinding.findPath(
+                    req.start,
+                    req.finish,
+                    req.agent ?: DEFAULT_AGENT
+                )
+            }
 
-            ctx.header("Access-Control-Max-Age", "600")
-            ctx.json(pathfindingResult)
+            val result = try {
+                job.get(PATHFINDING_TIMEOUT, java.util.concurrent.TimeUnit.SECONDS)
+            } catch (e: TimeoutException) {
+                e.printStackTrace()
+                throw PathfindingTimeoutException(req)
+            } catch (e: ExecutionException) {
+                println("something went wrong")
+                throw e
+            }
+
+            ctx.json(result)
         }
-        .start()//if using ssl plugin, port will be ignored and will listen on 80/443
+        .exception(PathfindingTimeoutException::class.java) { _, ctx ->
+            ctx.status(408)
+            ctx.result("pathfinding timed out (after ${PATHFINDING_TIMEOUT}s)")
+        }
+        .start()//if using ssl plugin, port will be ignored and will listen on 80/443 (by defualt)
 }
