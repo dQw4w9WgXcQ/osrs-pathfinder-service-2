@@ -12,11 +12,12 @@ import org.apache.commons.cli.HelpFormatter
 import org.apache.commons.cli.Option
 import org.apache.commons.cli.Options
 import org.apache.commons.cli.ParseException
+import org.slf4j.LoggerFactory
 import java.io.File
 import java.io.FileInputStream
-import java.util.Date
 import java.util.concurrent.ExecutionException
 import java.util.concurrent.Executors
+import java.util.concurrent.TimeUnit
 import java.util.concurrent.TimeoutException
 import kotlin.system.exitProcess
 
@@ -27,101 +28,106 @@ data class PathReq(val start: Position, val finish: Position, val agent: Agent?)
 class PathfindingTimeoutException(req: PathReq) :
     RuntimeException("pathfinding timed out for request: $req")
 
-fun main(args: Array<String>) {
-    println("================Starting server================")
+object Main {
+    val log = LoggerFactory.getLogger(this::class.java)
 
-    val certPathOpt = Option("c", "certDir", true, "Path to dir containing fullchain.pem and privkey.pem")
-    val options = Options().addOption(certPathOpt)
-    val cmd = try {
-        DefaultParser().parse(options, args)
-    } catch (e: ParseException) {
-        println(e.message)
-        HelpFormatter().printHelp("asdf", options)
-        exitProcess(1)
-    }
+    @JvmStatic
+    fun main(args: Array<String>) {
+        println("================Starting server================")
 
-    val certDir = cmd.getOptionValue("c")
-    println("certDir: $certDir")
-
-    val javalin = Javalin.create { config ->
-        if (certDir != null) {
-            config.plugins.register(SSLPlugin {
-                it.pemFromPath(
-                    "$certDir/fullchain.pem",
-                    "$certDir/privkey.pem"
-                )
-                it.insecurePort = 8080
-            })
+        val certPathOpt = Option("c", "certDir", true, "Path to dir containing fullchain.pem and privkey.pem")
+        val options = Options().addOption(certPathOpt)
+        val cmd = try {
+            DefaultParser().parse(options, args)
+        } catch (e: ParseException) {
+            log.debug("failed to parse args", e)
+            HelpFormatter().printHelp("asdf", options)
+            exitProcess(1)
         }
 
-        config.plugins.enableCors { it ->
-            it.add { it.anyHost() }
-        }
-    }
+        val certDir = cmd.getOptionValue("c")
+        log.info("certDir: $certDir")
 
-    val linkFile = File("links.zip")
-    if (!linkFile.exists()) {
-        println("links.zip not found")
-        exitProcess(1)
-    }
-
-    val graphFile = File("graph.zip")
-    if (!graphFile.exists()) {
-        println("graph.zip not found")
-        exitProcess(1)
-    }
-
-    val links = LinkStore.load(FileInputStream(linkFile)).links
-    val graphStore = GraphStore.load(FileInputStream(graphFile), links)
-    val pathfinding = Pathfinding.create(graphStore)
-    val exe = Executors.newFixedThreadPool(4)//4 vcpu vps
-
-    javalin
-        .get("/") {
-            it.result("Hello World")
-        }
-        .post("/request-path") { ctx ->
-            println(Date().toString() + " - " + ctx.ip() + " " + ctx.userAgent() + " " + ctx.header("X-Forwarded-For") + "\n" + ctx.body())
-
-            ctx.header("Access-Control-Max-Age", "600")
-
-            //todo: currently deserializes incorrectly if a nested primitive field is missing (finish.y will be 0)
-            // {
-            //    "start": {
-            //        "x": 3200,
-            //        "y": 3200,
-            //        "plane": 0
-            //    },
-            //    "finish": {
-            //        "x": 3201,
-            //        "plane": 0
-            //    }
-            // }
-            val req = ctx.bodyValidator<PathReq>().get()
-
-            val job = exe.submit<PathfindingResult> {
-                pathfinding.findPath(
-                    req.start,
-                    req.finish,
-                    req.agent ?: DEFAULT_AGENT
-                )
+        val javalin = Javalin.create { config ->
+            if (certDir != null) {
+                config.plugins.register(SSLPlugin {
+                    it.pemFromPath(
+                        "$certDir/fullchain.pem",
+                        "$certDir/privkey.pem"
+                    )
+                    it.insecurePort = 8080
+                })
             }
 
-            val result = try {
-                job.get(PATHFINDING_TIMEOUT, java.util.concurrent.TimeUnit.SECONDS)
-            } catch (e: TimeoutException) {
-                e.printStackTrace()
-                throw PathfindingTimeoutException(req)
-            } catch (e: ExecutionException) {
-                println("something went wrong")
-                throw e
+            config.plugins.enableCors { it ->
+                it.add { it.anyHost() }
             }
+        }
 
-            ctx.json(result)
+        val linkFile = File("links.zip")
+        if (!linkFile.exists()) {
+            println("links.zip not found")
+            exitProcess(1)
         }
-        .exception(PathfindingTimeoutException::class.java) { _, ctx ->
-            ctx.status(408)
-            ctx.result("pathfinding timed out (after ${PATHFINDING_TIMEOUT}s)")
+
+        val graphFile = File("graph.zip")
+        if (!graphFile.exists()) {
+            println("graph.zip not found")
+            exitProcess(1)
         }
-        .start()//if using ssl plugin, port will be ignored and will listen on 80/443 (by defualt)
+
+        val links = LinkStore.load(FileInputStream(linkFile)).links
+        val graphStore = GraphStore.load(FileInputStream(graphFile), links)
+        val pathfinding = Pathfinding.create(graphStore)
+        val exe = Executors.newFixedThreadPool(4)//4 vcpu vps
+
+        javalin
+            .get("/") {
+                it.result("Hello World")
+            }
+            .post("/request-path") { ctx ->
+                log.info("${ctx.ip()} - ${ctx.header("X-Forwarded-For")} - ${ctx.userAgent()}\n${ctx.body()}")
+
+                ctx.header("Access-Control-Max-Age", "600")
+
+                //todo: currently deserializes incorrectly if a nested primitive field is missing (finish.y will be 0)
+                // {
+                //    "start": {
+                //        "x": 3200,
+                //        "y": 3200,
+                //        "plane": 0
+                //    },
+                //    "finish": {
+                //        "x": 3201,
+                //        "plane": 0
+                //    }
+                // }
+                val req = ctx.bodyValidator<PathReq>().get()
+
+                val job = exe.submit<PathfindingResult> {
+                    pathfinding.findPath(
+                        req.start,
+                        req.finish,
+                        req.agent ?: DEFAULT_AGENT
+                    )
+                }
+
+                val result = try {
+                    job.get(PATHFINDING_TIMEOUT, TimeUnit.SECONDS)
+                } catch (e: TimeoutException) {
+                    log.error("pathfinding timed out", e)
+                    throw PathfindingTimeoutException(req)
+                } catch (e: ExecutionException) {
+                    log.error("pathfinding failed", e)
+                    throw e
+                }
+
+                ctx.json(result)
+            }
+            .exception(PathfindingTimeoutException::class.java) { _, ctx ->
+                ctx.status(408)
+                ctx.result("pathfinding timed out (after ${PATHFINDING_TIMEOUT}s)")
+            }
+            .start()//if using ssl plugin, port will be ignored and will listen on 80/443 (by defualt)
+    }
 }
