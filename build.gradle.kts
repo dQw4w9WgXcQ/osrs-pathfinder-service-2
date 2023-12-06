@@ -35,7 +35,7 @@ tasks {
     shadowJar {
         archiveClassifier.set("")//set to empty to replace the default JAR
         manifest {
-            attributes["Main-Class"] = "MainKt"
+            attributes["Main-Class"] = "Main"
         }
     }
 
