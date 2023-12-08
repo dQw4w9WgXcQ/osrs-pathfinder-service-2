@@ -79,7 +79,7 @@ object Main {
         val links = LinkStore.load(FileInputStream(linkFile)).links
         val graphStore = GraphStore.load(FileInputStream(graphFile), links)
         val pathfinding = Pathfinding.create(graphStore)
-        val exe = Executors.newFixedThreadPool(4)//4 vcpu vps
+        val exe = Executors.newFixedThreadPool(10)
 
         javalin
             .get("/") {
