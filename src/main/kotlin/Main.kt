@@ -6,6 +6,7 @@ import dev.dqw4w9wgxcq.pathfinder.pathfinding.store.GraphStore
 import dev.dqw4w9wgxcq.pathfinder.pathfinding.store.LinkStore
 import io.javalin.Javalin
 import io.javalin.community.ssl.SSLPlugin
+import io.javalin.http.HttpStatus
 import io.javalin.http.bodyValidator
 import org.apache.commons.cli.DefaultParser
 import org.apache.commons.cli.HelpFormatter
@@ -25,11 +26,10 @@ const val PATHFINDING_TIMEOUT = 10L//seconds
 val DEFAULT_AGENT = Agent(99, null, null)
 
 data class PathReq(val start: Position, val finish: Position, val agent: Agent?)
-class PathfindingTimeoutException(req: PathReq) :
-    RuntimeException("pathfinding timed out for request: $req")
+class PathfindingTimeoutException(req: PathReq) : RuntimeException("pathfinding timed out for request: $req")
 
 object Main {
-    val log = LoggerFactory.getLogger(this::class.java)
+    private val log = LoggerFactory.getLogger(this::class.java)
 
     @JvmStatic
     fun main(args: Array<String>) {
@@ -45,7 +45,7 @@ object Main {
             exitProcess(1)
         }
 
-        val certDir = cmd.getOptionValue("c")
+        val certDir = cmd.getOptionValue(certPathOpt)
         log.info("certDir: $certDir")
 
         val javalin = Javalin.create { config ->
@@ -125,7 +125,7 @@ object Main {
                 ctx.json(result)
             }
             .exception(PathfindingTimeoutException::class.java) { _, ctx ->
-                ctx.status(408)
+                ctx.status(HttpStatus.SERVICE_UNAVAILABLE)
                 ctx.result("pathfinding timed out (after ${PATHFINDING_TIMEOUT}s)")
             }
             .start()//if using ssl plugin, port will be ignored and will listen on 80/443 (by defualt)
