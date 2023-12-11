@@ -32,10 +32,10 @@ val DEFAULT_AGENT = Agent(99, null, null)
 data class PathRequest(val start: Position, val finish: Position, val agent: Agent?)
 data class PathResponse(
     val type: String,
+    val time: Long,
     val start: Position?,
     val finish: Position?,
-    val steps: List<PathStep>?,
-    val time: Long
+    val steps: List<PathStep>?
 )
 
 class PathfindingTimeoutException : RuntimeException()
@@ -70,7 +70,10 @@ fun main(args: Array<String>) {
         }
 
         config.plugins.enableCors { it ->
-            it.add { it.anyHost() }
+            it.add {
+                it.reflectClientOrigin = true
+                it.maxAge = 86400
+            }
         }
     }
 
@@ -100,8 +103,6 @@ fun main(args: Array<String>) {
         }
         .post("/request-path") { ctx ->
             log.info("ip:${ctx.ip()} xForwardedFor:${ctx.header("X-Forwarded-For")} userAgent:${ctx.userAgent()} body:\n${ctx.body()}")
-
-            ctx.header("Access-Control-Max-Age", "600")
 
             //todo: currently deserializes incorrectly if a nested primitive field is missing (finish.y will be 0)
             // {
@@ -144,9 +145,9 @@ fun main(args: Array<String>) {
             }
 
             val resp = when (result) {
-                is PathfindingResult.Success -> PathResponse("SUCCESS", result.start, result.finish, result.steps, time)
-                is PathfindingResult.Unreachable -> PathResponse("UNREACHABLE", result.start, result.finish, null, time)
-                is PathfindingResult.Blocked -> PathResponse("BLOCKED", result.start, result.finish, null, time)
+                is PathfindingResult.Success -> PathResponse("SUCCESS", time, result.start, result.finish, result.steps)
+                is PathfindingResult.Unreachable -> PathResponse("UNREACHABLE", time, result.start, result.finish, null)
+                is PathfindingResult.Blocked -> PathResponse("BLOCKED", time, result.start, result.finish, null)
             }
 
             ctx.json(resp)
