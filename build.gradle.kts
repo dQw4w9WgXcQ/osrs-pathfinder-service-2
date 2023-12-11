@@ -17,6 +17,7 @@ repositories {
 dependencies {
     implementation("dev.dqw4w9wgxcq.pathfinder:commons:1.0.0")
     implementation("dev.dqw4w9wgxcq.pathfinder:pathfinding:1.0.0")
+    implementation("dev.dqw4w9wgxcq.pathfinder:graph-generation:1.0.0")
     implementation("io.javalin:javalin:5.6.3")
     implementation("io.javalin.community.ssl:ssl-plugin:5.6.3")
     implementation("com.fasterxml.jackson.core:jackson-databind:2.15.0")
