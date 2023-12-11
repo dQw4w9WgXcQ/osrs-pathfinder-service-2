@@ -27,20 +27,14 @@ dependencies {
     implementation("org.eclipse.jetty:jetty-alpn-java-server:11.0.17")
 
     runtimeOnly("org.slf4j:slf4j-simple:2.0.7")
-
-    testImplementation(kotlin("test"))
 }
 
 tasks {
     shadowJar {
-        archiveClassifier.set("")//set to empty to replace the default JAR
+        archiveFileName.set("${archiveBaseName.get()}.${archiveExtension.get()}")
         manifest {
-            attributes["Main-Class"] = "Main"
+            attributes["Main-Class"] = "MainKt"
         }
-    }
-
-    test {
-        useJUnitPlatform()
     }
 }
 
