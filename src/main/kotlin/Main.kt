@@ -1,9 +1,10 @@
-import dev.dqw4w9wgxcq.pathfinder.TilePathfindingForGraphGen
 import dev.dqw4w9wgxcq.pathfinder.commons.domain.Agent
 import dev.dqw4w9wgxcq.pathfinder.commons.domain.Position
 import dev.dqw4w9wgxcq.pathfinder.commons.domain.pathstep.PathStep
 import dev.dqw4w9wgxcq.pathfinder.commons.store.GraphStore
 import dev.dqw4w9wgxcq.pathfinder.commons.store.LinkStore
+import dev.dqw4w9wgxcq.pathfinder.graphgeneration.pathfinding.TilePathfinderForGraphGen
+import dev.dqw4w9wgxcq.pathfinder.graphgeneration.pathfinding.TilePathfinderWrapper
 import dev.dqw4w9wgxcq.pathfinder.pathfinding.Pathfinding
 import dev.dqw4w9wgxcq.pathfinder.pathfinding.PathfindingResult
 import io.javalin.Javalin
@@ -92,7 +93,7 @@ fun main(args: Array<String>) {
     val links = LinkStore.load(FileInputStream(linkFile)).links
     val graphStore = GraphStore.load(FileInputStream(graphFile), links)
     //using the graph gen for now until rust tile service is done
-    val tilePathfinding = TilePathfindingForGraphGen.create(graphStore.grid)
+    val tilePathfinding = TilePathfinderWrapper(TilePathfinderForGraphGen.create(graphStore.grid))
     val pathfinding = Pathfinding.create(graphStore, tilePathfinding)
     //cached thread pool instead of fixed thread pool because we may have more jobs than threads in the event of a race
     val exe = Executors.newCachedThreadPool() as ThreadPoolExecutor
