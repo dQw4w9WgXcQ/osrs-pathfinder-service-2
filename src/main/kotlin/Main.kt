@@ -27,7 +27,7 @@ import java.util.concurrent.TimeoutException
 import kotlin.system.exitProcess
 
 const val PATHFINDING_TIMEOUT = 10L//seconds
-const val CAPACITY = 10
+const val CAPACITY = 20
 val DEFAULT_AGENT = Agent(99, null, null)
 
 data class PathRequest(val start: Position, val finish: Position, val agent: Agent?)
