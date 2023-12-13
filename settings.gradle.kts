@@ -10,3 +10,4 @@ plugins {
 }
 
 rootProject.name = "osrs-pathfinder-service-2"
+include("tester")

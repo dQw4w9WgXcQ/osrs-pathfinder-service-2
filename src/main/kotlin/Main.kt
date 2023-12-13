@@ -3,10 +3,10 @@ import dev.dqw4w9wgxcq.pathfinder.commons.domain.Position
 import dev.dqw4w9wgxcq.pathfinder.commons.domain.pathstep.PathStep
 import dev.dqw4w9wgxcq.pathfinder.commons.store.GraphStore
 import dev.dqw4w9wgxcq.pathfinder.commons.store.LinkStore
-import dev.dqw4w9wgxcq.pathfinder.graphgeneration.pathfinding.TilePathfinderForGraphGen
-import dev.dqw4w9wgxcq.pathfinder.graphgeneration.pathfinding.TilePathfinderWrapper
 import dev.dqw4w9wgxcq.pathfinder.pathfinding.Pathfinding
 import dev.dqw4w9wgxcq.pathfinder.pathfinding.PathfindingResult
+import dev.dqw4w9wgxcq.pathfinder.tilepathfinding.TilePathfinderForGraphGen
+import dev.dqw4w9wgxcq.pathfinder.tilepathfinding.TilePathfinderWrapper
 import io.javalin.Javalin
 import io.javalin.community.ssl.SSLPlugin
 import io.javalin.http.HttpStatus
@@ -27,7 +27,7 @@ import java.util.concurrent.TimeoutException
 import kotlin.system.exitProcess
 
 const val PATHFINDING_TIMEOUT = 10L//seconds
-const val CAPACITY = 20
+const val CAPACITY = 10
 val DEFAULT_AGENT = Agent(99, null, null)
 
 enum class PathfindingResultType {
@@ -99,7 +99,7 @@ fun main(args: Array<String>) {
     val links = LinkStore.load(FileInputStream(linkFile)).links
     val graphStore = GraphStore.load(FileInputStream(graphFile), links)
     //using the graph gen for now until rust tile service is done
-    val tilePathfinding = TilePathfinderWrapper(TilePathfinderForGraphGen.create(graphStore.grid))
+    val tilePathfinding = TilePathfinderWrapper(TilePathfinderForGraphGen.create(graphStore.grid), 4)
     val pathfinding = Pathfinding.create(graphStore, tilePathfinding)
     //cached thread pool instead of fixed thread pool because we may have more jobs than threads in the event of a race
     val exe = Executors.newCachedThreadPool() as ThreadPoolExecutor
