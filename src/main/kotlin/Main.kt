@@ -30,9 +30,15 @@ const val PATHFINDING_TIMEOUT = 10L//seconds
 const val CAPACITY = 20
 val DEFAULT_AGENT = Agent(99, null, null)
 
+enum class PathfindingResultType {
+    SUCCESS,
+    UNREACHABLE,
+    BLOCKED
+}
+
 data class PathRequest(val start: Position, val finish: Position, val agent: Agent?)
 data class PathResponse(
-    val type: String,
+    val type: PathfindingResultType,
     val time: Long,
     val start: Position?,
     val finish: Position?,
@@ -145,13 +151,33 @@ fun main(args: Array<String>) {
                 throw e
             }
 
-            val resp = when (result) {
-                is PathfindingResult.Success -> PathResponse("SUCCESS", time, result.start, result.finish, result.steps)
-                is PathfindingResult.Unreachable -> PathResponse("UNREACHABLE", time, result.start, result.finish, null)
-                is PathfindingResult.Blocked -> PathResponse("BLOCKED", time, result.start, result.finish, null)
+            val response = when (result) {
+                is PathfindingResult.Success -> PathResponse(
+                    PathfindingResultType.SUCCESS,
+                    time,
+                    result.start,
+                    result.finish,
+                    result.steps
+                )
+
+                is PathfindingResult.Unreachable -> PathResponse(
+                    PathfindingResultType.UNREACHABLE,
+                    time,
+                    result.start,
+                    result.finish,
+                    null
+                )
+
+                is PathfindingResult.Blocked -> PathResponse(
+                    PathfindingResultType.BLOCKED,
+                    time,
+                    result.start,
+                    result.finish,
+                    null
+                )
             }
 
-            ctx.json(resp)
+            ctx.json(response)
         }
         .exception(PathfindingTimeoutException::class.java) { _, ctx ->
             ctx.status(HttpStatus.SERVICE_UNAVAILABLE)
