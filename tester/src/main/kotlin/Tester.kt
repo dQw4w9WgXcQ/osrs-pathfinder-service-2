@@ -8,6 +8,7 @@ import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.RequestBody.Companion.toRequestBody
+import java.util.concurrent.Callable
 import java.util.concurrent.Executors
 
 data class PathResponse2(
@@ -33,7 +34,7 @@ fun main() {
         PathRequest(Position(3200, 3200, 0), Position(3201, 3201, 0), null),
     )
         .map {
-            exe.submit {
+            exe.submit(Callable {
                 val reqBody = gson.toJson(it)
                     .toRequestBody("application/json".toMediaType())
 
@@ -47,9 +48,17 @@ fun main() {
                 val json = resp.body?.string()
 
                 val pathResp = gson.fromJson(json, PathResponse2::class.java)
-                println(pathResp.time)
+                return@Callable pathResp.time
+            })
+        }
+        .map {
+            try {
+                it.get()
+            } catch (e: Exception) {
+                e
             }
         }
+        .forEach { println(it) }
 
     exe.shutdown()
 }
