@@ -2,6 +2,7 @@ import dev.dqw4w9wgxcq.pathfinder.commons.domain.Agent
 import dev.dqw4w9wgxcq.pathfinder.commons.domain.Position
 import dev.dqw4w9wgxcq.pathfinder.commons.domain.pathstep.PathStep
 import dev.dqw4w9wgxcq.pathfinder.commons.store.GraphStore
+import dev.dqw4w9wgxcq.pathfinder.commons.store.GridStore
 import dev.dqw4w9wgxcq.pathfinder.commons.store.LinkStore
 import dev.dqw4w9wgxcq.pathfinder.pathfinding.Pathfinding
 import dev.dqw4w9wgxcq.pathfinder.pathfinding.PathfindingResult
@@ -96,10 +97,18 @@ fun main(args: Array<String>) {
         exitProcess(1)
     }
 
-    val links = LinkStore.load(FileInputStream(linkFile)).links
+    val gridFile = File("grid.zip")
+    if (!gridFile.exists()) {
+        println("grid.zip not found")
+        exitProcess(1)
+    }
+
+    val linkStore = LinkStore.load(FileInputStream(linkFile))
+    val links = linkStore.links
     val graphStore = GraphStore.load(FileInputStream(graphFile), links)
+    val gridStore = GridStore.load(FileInputStream(gridFile))
     //using the graph gen for now until rust tile service is done
-    val tilePathfinding = TilePathfinderWrapper(TilePathfinderForGraphGen.create(graphStore.grid), 4)
+    val tilePathfinding = TilePathfinderWrapper(TilePathfinderForGraphGen.create(gridStore.grid), 8)
     val pathfinding = Pathfinding.create(graphStore, tilePathfinding)
     //cached thread pool instead of fixed thread pool because we may have more jobs than threads in the event of a race
     val exe = Executors.newCachedThreadPool() as ThreadPoolExecutor
