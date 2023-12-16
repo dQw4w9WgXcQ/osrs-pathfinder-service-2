@@ -106,7 +106,7 @@ fun main(args: Array<String>) {
     val linkStore = LinkStore.load(FileInputStream(linkFile))
     val links = linkStore.links
     val graphStore = GraphStore.load(FileInputStream(graphFile), links)
-    val gridStore = GridStore.load(FileInputStream(gridFile))
+    val gridStore = GridStore.load(gridFile)
     //using the graph gen for now until rust tile service is done
     val tilePathfinding = TilePathfinderWrapper(TilePathfinderForGraphGen.create(gridStore.grid), 8)
     val pathfinding = Pathfinding.create(graphStore, tilePathfinding)
