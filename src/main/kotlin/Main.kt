@@ -19,7 +19,6 @@ import org.apache.commons.cli.Options
 import org.apache.commons.cli.ParseException
 import org.slf4j.LoggerFactory
 import java.io.File
-import java.io.FileInputStream
 import java.util.concurrent.ExecutionException
 import java.util.concurrent.Executors
 import java.util.concurrent.ThreadPoolExecutor
@@ -103,9 +102,9 @@ fun main(args: Array<String>) {
         exitProcess(1)
     }
 
-    val linkStore = LinkStore.load(FileInputStream(linkFile))
+    val linkStore = LinkStore.load(linkFile)
     val links = linkStore.links
-    val graphStore = GraphStore.load(FileInputStream(graphFile), links)
+    val graphStore = GraphStore.load(graphFile, links)
     val gridStore = GridStore.load(gridFile)
     //using the graph gen for now until rust tile service is done
     val tilePathfinding = TilePathfinderWrapper(TilePathfinderForGraphGen.create(gridStore.grid), 8)
