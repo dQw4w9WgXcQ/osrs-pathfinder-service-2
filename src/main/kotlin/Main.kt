@@ -6,7 +6,7 @@ import dev.dqw4w9wgxcq.pathfinder.commons.store.GridStore
 import dev.dqw4w9wgxcq.pathfinder.commons.store.LinkStore
 import dev.dqw4w9wgxcq.pathfinder.pathfinding.Pathfinding
 import dev.dqw4w9wgxcq.pathfinder.pathfinding.PathfindingResult
-import dev.dqw4w9wgxcq.pathfinder.tilepathfinding.TilePathfinderForGraphGen
+import dev.dqw4w9wgxcq.pathfinder.tilepathfinding.TilePathfinderImpl
 import dev.dqw4w9wgxcq.pathfinder.tilepathfinding.TilePathfinderWrapper
 import io.javalin.Javalin
 import io.javalin.community.ssl.SSLPlugin
@@ -107,7 +107,7 @@ fun main(args: Array<String>) {
     val graphStore = GraphStore.load(graphFile, links)
     val gridStore = GridStore.load(gridFile)
     //using the graph gen for now until rust tile service is done
-    val tilePathfinding = TilePathfinderWrapper(TilePathfinderForGraphGen.create(gridStore.grid), 8)
+    val tilePathfinding = TilePathfinderWrapper(TilePathfinderImpl.create(gridStore.grid), 8)
     val pathfinding = Pathfinding.create(graphStore, tilePathfinding)
     //cached thread pool instead of fixed thread pool because we may have more jobs than threads in the event of a race
     val exe = Executors.newCachedThreadPool() as ThreadPoolExecutor
@@ -159,6 +159,7 @@ fun main(args: Array<String>) {
                 throw e
             }
 
+            //todo embed response instead of using DTO
             val response = when (result) {
                 is PathfindingResult.Success -> PathResponse(
                     PathfindingResultType.SUCCESS,

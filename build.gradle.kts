@@ -24,6 +24,7 @@ dependencies {
     implementation("com.fasterxml.jackson.module:jackson-module-kotlin:2.15.0")
     implementation("commons-cli:commons-cli:1.5.0")
     //https://stackoverflow.com/questions/60074168/java-lang-illegalstateexception-no-server-alpnprocessors-wiremock/69072775#69072775
+    //https://github.com/jetty/jetty.project/issues/1894
     implementation("org.eclipse.jetty:jetty-alpn-server:11.0.17")
     implementation("org.eclipse.jetty:jetty-alpn-java-server:11.0.17")
 
