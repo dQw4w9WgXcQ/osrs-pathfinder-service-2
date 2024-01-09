@@ -2,12 +2,9 @@ import dev.dqw4w9wgxcq.pathfinder.commons.domain.Agent
 import dev.dqw4w9wgxcq.pathfinder.commons.domain.Position
 import dev.dqw4w9wgxcq.pathfinder.commons.domain.pathstep.PathStep
 import dev.dqw4w9wgxcq.pathfinder.commons.store.GraphStore
-import dev.dqw4w9wgxcq.pathfinder.commons.store.GridStore
 import dev.dqw4w9wgxcq.pathfinder.commons.store.LinkStore
 import dev.dqw4w9wgxcq.pathfinder.pathfinding.Pathfinding
 import dev.dqw4w9wgxcq.pathfinder.pathfinding.PathfindingResult
-import dev.dqw4w9wgxcq.pathfinder.tilepathfinding.TilePathfinderImpl
-import dev.dqw4w9wgxcq.pathfinder.tilepathfinding.TilePathfinderWrapper
 import io.javalin.Javalin
 import io.javalin.community.ssl.SSLPlugin
 import io.javalin.http.HttpStatus
@@ -42,7 +39,7 @@ data class PathResponse(
     val time: Long,
     val start: Position?,
     val finish: Position?,
-    val steps: List<PathStep>?
+    val steps: List<PathStep>?,
 )
 
 class PathfindingTimeoutException : RuntimeException()
@@ -96,19 +93,11 @@ fun main(args: Array<String>) {
         exitProcess(1)
     }
 
-    val gridFile = File("grid.zip")
-    if (!gridFile.exists()) {
-        println("grid.zip not found")
-        exitProcess(1)
-    }
-
     val linkStore = LinkStore.load(linkFile)
     val links = linkStore.links
     val graphStore = GraphStore.load(graphFile, links)
-    val gridStore = GridStore.load(gridFile)
-    //using the graph gen for now until rust tile service is done
-    val tilePathfinding = TilePathfinderWrapper(TilePathfinderImpl.create(gridStore.grid), 8)
-    val pathfinding = Pathfinding.create(graphStore, tilePathfinding)
+    val tilePathfinder = RemoteTilePathfinder("http://localhost:3000")
+    val pathfinding = Pathfinding.create(graphStore, tilePathfinder)
     //cached thread pool instead of fixed thread pool because we may have more jobs than threads in the event of a race
     val exe = Executors.newCachedThreadPool() as ThreadPoolExecutor
 
@@ -116,7 +105,7 @@ fun main(args: Array<String>) {
         .get("/") {
             it.result("Hello World")
         }
-        .post("/request-path") { ctx ->
+        .post("/find-path") { ctx ->
             log.info("ip:${ctx.ip()} xForwardedFor:${ctx.header("X-Forwarded-For")} userAgent:${ctx.userAgent()} body:\n${ctx.body()}")
 
             //todo: currently deserializes incorrectly if a nested primitive field is missing (finish.y will be 0)

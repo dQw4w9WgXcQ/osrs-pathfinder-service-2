@@ -27,6 +27,8 @@ dependencies {
     //https://github.com/jetty/jetty.project/issues/1894
     implementation("org.eclipse.jetty:jetty-alpn-server:11.0.17")
     implementation("org.eclipse.jetty:jetty-alpn-java-server:11.0.17")
+    implementation("com.squareup.okhttp3:okhttp:4.12.0")
+    implementation("com.google.code.gson:gson:2.10.1")
 
     runtimeOnly("org.slf4j:slf4j-simple:2.0.7")
 }
