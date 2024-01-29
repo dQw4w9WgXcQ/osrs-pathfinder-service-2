@@ -1,6 +1,6 @@
 import dev.dqw4w9wgxcq.pathfinder.commons.domain.Agent
 import dev.dqw4w9wgxcq.pathfinder.commons.domain.Position
-import dev.dqw4w9wgxcq.pathfinder.commons.domain.pathstep.PathStep
+import dev.dqw4w9wgxcq.pathfinder.commons.domain.step.Step
 import dev.dqw4w9wgxcq.pathfinder.commons.store.GraphStore
 import dev.dqw4w9wgxcq.pathfinder.commons.store.LinkStore
 import dev.dqw4w9wgxcq.pathfinder.pathfinding.Pathfinding
@@ -39,7 +39,7 @@ data class PathResponse(
     val time: Long,
     val start: Position?,
     val finish: Position?,
-    val steps: List<PathStep>?,
+    val steps: List<Step>?,
 )
 
 class PathfindingTimeoutException : RuntimeException()

@@ -24,8 +24,6 @@ class RemoteTilePathfinder(private val url: String) : TilePathfinder {
             )
         )
 
-        println(reqJson)
-
         val request = Request.Builder()
             .url("$url/find-path")
             .post(reqJson.toJsonRequestBody())
@@ -51,8 +49,6 @@ class RemoteTilePathfinder(private val url: String) : TilePathfinder {
                 "ends" to ends
             )
         )
-
-        println(reqJson)
 
         val request = Request.Builder()
             .url("$url/find-distances")
