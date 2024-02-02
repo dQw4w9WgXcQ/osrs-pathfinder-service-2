@@ -1,7 +1,6 @@
 package dev.dqw4w9wgxcq
 
-import PathRequest
-import PathfindingResultType
+import FindPathRequest
 import com.google.gson.GsonBuilder
 import dev.dqw4w9wgxcq.pathfinder.commons.domain.Position
 import okhttp3.MediaType.Companion.toMediaType
@@ -11,13 +10,6 @@ import okhttp3.RequestBody.Companion.toRequestBody
 import java.util.concurrent.Callable
 import java.util.concurrent.Executors
 
-data class PathResponse2(
-    val type: PathfindingResultType,
-    val time: Long,
-    val start: Position?,
-    val finish: Position?,
-)
-
 fun main() {
     val exe = Executors.newCachedThreadPool()
 
@@ -25,13 +17,13 @@ fun main() {
     val gson = GsonBuilder().create()
 
     listOf(
-        PathRequest(Position(3200, 3200, 0), Position(3201, 3201, 0), null),
-        PathRequest(Position(3200, 3200, 0), Position(3201, 3201, 0), null),
-        PathRequest(Position(3200, 3200, 0), Position(3201, 3201, 0), null),
-        PathRequest(Position(3200, 3200, 0), Position(3201, 3201, 0), null),
-        PathRequest(Position(3200, 3200, 0), Position(3201, 3201, 0), null),
-        PathRequest(Position(3200, 3200, 0), Position(3201, 3201, 0), null),
-        PathRequest(Position(3200, 3200, 0), Position(3201, 3201, 0), null),
+        FindPathRequest(Position(3200, 3200, 0), Position(3201, 3201, 0), null),
+        FindPathRequest(Position(3200, 3200, 0), Position(3201, 3201, 0), null),
+        FindPathRequest(Position(3200, 3200, 0), Position(3201, 3201, 0), null),
+        FindPathRequest(Position(3200, 3200, 0), Position(3201, 3201, 0), null),
+        FindPathRequest(Position(3200, 3200, 0), Position(3201, 3201, 0), null),
+        FindPathRequest(Position(3200, 3200, 0), Position(3201, 3201, 0), null),
+        FindPathRequest(Position(3200, 3200, 0), Position(3201, 3201, 0), null),
     )
         .map {
             exe.submit(Callable {
@@ -47,8 +39,7 @@ fun main() {
 
                 val json = resp.body?.string()
 
-                val pathResp = gson.fromJson(json, PathResponse2::class.java)
-                return@Callable pathResp.time
+                return@Callable json
             })
         }
         .map {
