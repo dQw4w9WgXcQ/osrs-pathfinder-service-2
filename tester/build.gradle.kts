@@ -1,5 +1,5 @@
 plugins {
-    kotlin("jvm")
+    kotlin("jvm") version "1.9.21"
 }
 
 group = "dev.dqw4w9wgxcq"
@@ -15,7 +15,7 @@ repositories {
 
 dependencies {
     implementation(project(":"))
-    implementation("dev.dqw4w9wgxcq.pathfinder:commons:1.0.0")
+    implementation("dev.dqw4w9wgxcq.pathfinder:commons:+")
     implementation("com.squareup.okhttp3:okhttp:4.12.0")
     implementation("com.google.code.gson:gson:2.10.1")
 
