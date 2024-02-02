@@ -38,15 +38,15 @@ class RemoteTilePathfinder(private val url: String) : TilePathfinder {
         return response.path
     }
 
-    override fun distances(start: Position, ends: MutableSet<Point>): Map<Point, Int> {
+    override fun distances(from: Position, tos: MutableSet<Point>): Map<Point, Int> {
         data class Distance(val point: Point, val distance: Int)
         data class FindDistancesResponse(val distances: List<Distance>)
 
         val reqJson = gson.toJson(
             mapOf(
-                "plane" to start.plane,
-                "start" to start.toPoint(),
-                "ends" to ends
+                "plane" to from.plane,
+                "start" to from.toPoint(),
+                "ends" to tos
             )
         )
 
