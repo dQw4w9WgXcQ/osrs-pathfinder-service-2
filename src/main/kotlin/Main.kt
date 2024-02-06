@@ -33,26 +33,15 @@ fun main() {
         ?.toInt()
         .also { if (it == null) log.info("PORT env not set, using 8080") else log.info("PORT: $it") }
         ?: 8080
+    val tileServiceAddress = System.getenv("TILE_SERVICE_ADDRESS") ?: "http://localhost:8081"
 
-    val tileServiceAddress = System.getenv("TILE_SERVICE_ADDRESS")
-    if (tileServiceAddress == null) {
-        log.error("TILE_SERVICE_ADDRESS env not set")
-        exitProcess(1)
-    }
-
-    val dataDir = System.getenv("DATA_DIR")
-    if (dataDir == null) {
-        log.error("DATA_DIR env not set")
-        exitProcess(1)
-    }
-
-    val linksZip = File(dataDir, "links.zip")
+    val linksZip = File("links.zip")
     if (!linksZip.exists()) {
         log.error("links.zip not found")
         exitProcess(1)
     }
 
-    val graphZip = File(dataDir, "graph.zip")
+    val graphZip = File("graph.zip")
     if (!graphZip.exists()) {
         log.error("graph.zip not found")
         exitProcess(1)
