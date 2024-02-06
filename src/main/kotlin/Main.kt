@@ -24,35 +24,46 @@ data class FindPathResponse(val time: Long, val result: PathfindingResult)
 
 class PathfindingTimeoutException(cause: TimeoutException) : RuntimeException(cause)
 
-private val log = LoggerFactory.getLogger("MainKt")
-
 fun main() {
     println("================Starting server================")
 
-    val port = System.getenv("PORT")?.toInt()
-    log.info("PORT: $port")
-    val tileServiceAddr = System.getenv("TILE_SERVICE")
-        ?: throw IllegalArgumentException("TILE_SERVICE env not set")
-    log.info("TILE_SERVICE: $tileServiceAddr")
+    val log = LoggerFactory.getLogger("main")
 
-    val linkFile = File("links.zip")
-    if (!linkFile.exists()) {
-        println("links.zip not found")
+    val port = System.getenv("PORT")
+        ?.toInt()
+        .also { if (it == null) log.info("PORT env not set, using 8080") else log.info("PORT: $it") }
+        ?: 8080
+
+    val tileServiceAddress = System.getenv("TILE_SERVICE_ADDRESS")
+    if (tileServiceAddress == null) {
+        log.error("TILE_SERVICE_ADDRESS env not set")
         exitProcess(1)
     }
 
-    val graphFile = File("graph.zip")
-    if (!graphFile.exists()) {
-        println("graph.zip not found")
+    val dataDir = System.getenv("DATA_DIR")
+    if (dataDir == null) {
+        log.error("DATA_DIR env not set")
         exitProcess(1)
     }
 
-    val linkStore = LinkStore.load(linkFile)
-    val graphStore = GraphStore.load(graphFile, linkStore.links)
+    val linksZip = File(dataDir, "links.zip")
+    if (!linksZip.exists()) {
+        log.error("links.zip not found")
+        exitProcess(1)
+    }
+
+    val graphZip = File(dataDir, "graph.zip")
+    if (!graphZip.exists()) {
+        log.error("graph.zip not found")
+        exitProcess(1)
+    }
+
+    val linkStore = LinkStore.load(linksZip)
+    val graphStore = GraphStore.load(graphZip, linkStore.links)
 
     System.gc()
 
-    val tilePathfinder = RemoteTilePathfinder("http://$tileServiceAddr")
+    val tilePathfinder = RemoteTilePathfinder(tileServiceAddress)
     val pathfinding = Pathfinding.create(graphStore, tilePathfinder)
 
     //cached thread pool instead of fixed thread pool because we may have more jobs than threads in the event of a race
@@ -102,5 +113,5 @@ fun main() {
             ctx.header("Retry-After", "120")
             ctx.result("pathfinding timed out (after ${PATHFINDING_TIMEOUT}s)")
         }
-        .start(port ?: 8080)
+        .start(port)
 }

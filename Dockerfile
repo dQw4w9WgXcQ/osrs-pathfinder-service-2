@@ -1,10 +1,10 @@
-FROM openjdk:17 AS build
+FROM osrs-pathfinder-maven-local-published AS build
 WORKDIR /workdir
 COPY . .
 RUN chmod +x gradlew && ./gradlew shadowJar --no-daemon
 
-FROM openjdk:17
+FROM eclipse-temurin:17
 WORKDIR /workdir
-COPY --from=build /workdir/build/libs/*.jar app.jar
+COPY --from=build /workdir/build/libs/osrs-pathfinder-service-2-*-all.jar service.jar
 EXPOSE 8080
-CMD ["java", "-jar", "app.jar"]
+CMD ["java", "-jar", "service.jar"]
