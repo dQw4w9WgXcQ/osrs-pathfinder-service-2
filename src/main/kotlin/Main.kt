@@ -1,4 +1,7 @@
+import com.google.gson.Gson
+import dev.dqw4w9wgxcq.pathfinder.commons.TilePathfinder
 import dev.dqw4w9wgxcq.pathfinder.commons.domain.Agent
+import dev.dqw4w9wgxcq.pathfinder.commons.domain.Point
 import dev.dqw4w9wgxcq.pathfinder.commons.domain.Position
 import dev.dqw4w9wgxcq.pathfinder.commons.store.GraphStore
 import dev.dqw4w9wgxcq.pathfinder.commons.store.LinkStore
@@ -7,8 +10,14 @@ import dev.dqw4w9wgxcq.pathfinder.pathfinding.PathfindingResult
 import io.javalin.Javalin
 import io.javalin.http.HttpStatus
 import io.javalin.http.bodyValidator
+import okhttp3.MediaType.Companion.toMediaType
+import okhttp3.OkHttpClient
+import okhttp3.Request
+import okhttp3.RequestBody
+import okhttp3.RequestBody.Companion.toRequestBody
 import org.slf4j.LoggerFactory
 import java.io.File
+import java.io.IOException
 import java.util.concurrent.Executors
 import java.util.concurrent.ThreadPoolExecutor
 import java.util.concurrent.TimeUnit
@@ -17,6 +26,10 @@ import kotlin.system.exitProcess
 
 const val PATHFINDING_TIMEOUT = 10L//seconds
 const val CAPACITY = 10
+
+val JSON_MEDIA_TYPE = "application/json; charset=utf-8".toMediaType()
+val GSON = Gson()
+
 val DEFAULT_AGENT = Agent(99, null, null)
 
 data class FindPathRequest(val start: Position, val finish: Position, val agent: Agent?)
@@ -29,11 +42,26 @@ fun main() {
 
     val log = LoggerFactory.getLogger("main")
 
+    val defaultPort = 8080
     val port = System.getenv("PORT")
         ?.toInt()
-        .also { if (it == null) log.info("PORT env not set, using 8080") else log.info("PORT: $it") }
-        ?: 8080
-    val tileServiceAddress = System.getenv("TILE_SERVICE_ADDRESS") ?: "http://localhost:8081"
+        .also {
+            if (it == null)
+                log.info("PORT env not set, using $defaultPort")
+            else
+                log.info("PORT: $it")
+        }
+        ?: defaultPort
+
+    val defaultTileServiceAddress = "http://localhost:8081"
+    val tileServiceAddress = System.getenv("TILE_SERVICE_ADDRESS")
+        .also {
+            if (it == null)
+                log.info("TILE_SERVICE_ADDRESS env not set, using '${defaultTileServiceAddress}'")
+            else
+                log.info("TILE_SERVICE_ADDRESS: $it")
+        }
+        ?: defaultTileServiceAddress
 
     val linksZip = File("links.zip")
     if (!linksZip.exists()) {
@@ -103,4 +131,69 @@ fun main() {
             ctx.result("pathfinding timed out (after ${PATHFINDING_TIMEOUT}s)")
         }
         .start(port)
+}
+
+class RemoteTilePathfinder(private val url: String) : TilePathfinder {
+    private val okHttp = OkHttpClient()
+
+    override fun findPath(plane: Int, start: Point, end: Point): List<Point>? {
+        data class FindPathResponse(val path: MutableList<Point>?)
+
+        val request = Request.Builder()
+            .url("$url/find-path")
+            .post(
+                mapOf(
+                    "plane" to plane,
+                    "start" to start,
+                    "end" to end
+                ).toJsonRequestBody()
+            )
+            .build()
+
+        val response = okHttp.newCall(request)
+            .execute()
+            .also { if (!it.isSuccessful) throw IOException("Unexpected code $it") }
+            .body!!
+            .string()
+            .let { GSON.fromJson(it, FindPathResponse::class.java) }
+
+        return response.path
+    }
+
+    override fun distances(from: Position, tos: MutableSet<Point>): Map<Point, Int> {
+        data class Distance(val point: Point, val distance: Int)
+        data class FindDistancesResponse(val distances: List<Distance>)
+
+        val request = Request.Builder()
+            .url("$url/find-distances")
+            .post(
+                mapOf(
+                    "plane" to from.plane,
+                    "start" to from.toPoint(),
+                    "ends" to tos
+                ).toJsonRequestBody()
+            )
+            .build()
+
+        val response = okHttp.newCall(request)
+            .execute()
+            .also { if (!it.isSuccessful) throw IOException("Unexpected code $it") }
+            .body!!
+            .string()
+            .let { GSON.fromJson(it, FindDistancesResponse::class.java) }
+
+        return response.distances.associate { it.point to it.distance }
+    }
+
+    override fun isRemote(): Boolean {
+        return true
+    }
+}
+
+fun Map<String, Any?>.toJsonRequestBody(): RequestBody {
+    return GSON.toJson(this).toJsonRequestBody()
+}
+
+fun String.toJsonRequestBody(): RequestBody {
+    return this.toRequestBody(JSON_MEDIA_TYPE)
 }
