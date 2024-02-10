@@ -27,9 +27,6 @@ import kotlin.system.exitProcess
 const val PATHFINDING_TIMEOUT = 10L//seconds
 const val CAPACITY = 10
 
-val JSON_MEDIA_TYPE = "application/json; charset=utf-8".toMediaType()
-val GSON = Gson()
-
 val DEFAULT_AGENT = Agent(99, null, null)
 
 data class FindPathRequest(val start: Position, val finish: Position, val agent: Agent?)
@@ -188,12 +185,18 @@ class RemoteTilePathfinder(private val url: String) : TilePathfinder {
     override fun isRemote(): Boolean {
         return true
     }
-}
 
-fun Map<String, Any?>.toJsonRequestBody(): RequestBody {
-    return GSON.toJson(this).toJsonRequestBody()
-}
+    companion object {
+        private val JSON_MEDIA_TYPE = "application/json; charset=utf-8".toMediaType()
 
-fun String.toJsonRequestBody(): RequestBody {
-    return this.toRequestBody(JSON_MEDIA_TYPE)
+        val GSON = Gson()
+
+        fun Map<String, Any?>.toJsonRequestBody(): RequestBody {
+            return GSON.toJson(this).toJsonRequestBody()
+        }
+
+        fun String.toJsonRequestBody(): RequestBody {
+            return this.toRequestBody(JSON_MEDIA_TYPE)
+        }
+    }
 }
