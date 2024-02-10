@@ -186,8 +186,8 @@ class RemoteTilePathfinder(private val url: String) : TilePathfinder {
         return true
     }
 
-    companion object {
-        private val JSON_MEDIA_TYPE = "application/json; charset=utf-8".toMediaType()
+    private companion object {
+        val JSON_MEDIA_TYPE = "application/json; charset=utf-8".toMediaType()
 
         val GSON = Gson()
 
