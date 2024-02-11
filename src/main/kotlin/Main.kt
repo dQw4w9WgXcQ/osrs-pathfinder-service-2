@@ -29,11 +29,6 @@ const val CAPACITY = 10
 
 val DEFAULT_AGENT = Agent(99, null, null)
 
-data class FindPathRequest(val start: Position, val finish: Position, val agent: Agent?)
-data class FindPathResponse(val time: Long, val result: PathfindingResult)
-
-class PathfindingTimeoutException(cause: TimeoutException) : RuntimeException(cause)
-
 fun main() {
     println("================Starting server================")
 
@@ -94,7 +89,10 @@ fun main() {
         }
         .get("/") { it.result("Hello World") }
         .post("/find-path") { ctx ->
-            val req = ctx.bodyValidator<FindPathRequest>().get()
+            data class Req(val start: Position, val finish: Position, val agent: Agent?)
+            data class Res(val time: Long, val result: PathfindingResult)
+
+            val req = ctx.bodyValidator<Req>().get()
 
             if (exe.activeCount >= CAPACITY) {
                 ctx.status(HttpStatus.SERVICE_UNAVAILABLE)
@@ -117,15 +115,13 @@ fun main() {
                 job.get(PATHFINDING_TIMEOUT, TimeUnit.SECONDS)
             } catch (e: TimeoutException) {
                 log.info("pathfinding timed out for request: $req")
-                throw PathfindingTimeoutException(e)
+                ctx.status(HttpStatus.SERVICE_UNAVAILABLE)
+                ctx.header("Retry-After", "120")
+                ctx.result("pathfinding timed out (after ${PATHFINDING_TIMEOUT}s)")
+                return@post
             }
 
-            ctx.json(FindPathResponse(time, result))
-        }
-        .exception(PathfindingTimeoutException::class.java) { _, ctx ->
-            ctx.status(HttpStatus.SERVICE_UNAVAILABLE)
-            ctx.header("Retry-After", "120")
-            ctx.result("pathfinding timed out (after ${PATHFINDING_TIMEOUT}s)")
+            ctx.json(Res(time, result))
         }
         .start(port)
 }
