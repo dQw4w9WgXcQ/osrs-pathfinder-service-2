@@ -8,12 +8,12 @@ RUN chmod +x gradlew && ./gradlew shadowJar --no-daemon
 FROM --platform=$TARGETPLATFORM eclipse-temurin:21-alpine as jlink
 COPY --from=build /workdir/build/libs/osrs-pathfinder-service-2-*-all.jar /service.jar
 RUN apk add --no-cache binutils
-RUN unzip /service.jar -d temp
+RUN unzip /service.jar -q -d temp
 RUN jdeps  \
       --print-module-deps \
       --ignore-missing-deps \
       --recursive \
-      --multi-release 17 \
+      --multi-release 21 \
       --class-path="./temp/BOOT-INF/lib/*" \
       --module-path="./temp/BOOT-INF/lib/*" \
       /service.jar > /modules.txt
@@ -33,4 +33,4 @@ COPY --from=jlink /bindir/jre /bindir/jre
 COPY --from=build /workdir/build/libs/osrs-pathfinder-service-2-*-all.jar /bindir/service.jar
 ENV JAVA_HOME=/bindir/jre
 ENV PATH="${JAVA_HOME}/bin:${PATH}"
-CMD ["java", "-XX:+UseZGC", "-jar", "/bindir/service.jar"]
+CMD ["java", "-jar", "/bindir/service.jar"]

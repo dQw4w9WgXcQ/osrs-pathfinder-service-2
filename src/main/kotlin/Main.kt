@@ -94,6 +94,8 @@ fun main() {
 
             val req = ctx.bodyValidator<Req>().get()
 
+            log.info("start: ${req.start}, finish: ${req.finish}")
+
             if (exe.activeCount >= CAPACITY) {
                 ctx.status(HttpStatus.SERVICE_UNAVAILABLE)
                 ctx.header("Retry-After", "5")
