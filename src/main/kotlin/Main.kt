@@ -123,6 +123,10 @@ fun main() {
 
             ctx.json(Res(time, result))
         }
+        .get("/stats") { ctx ->
+            data class Res(val activeCount: Int)
+            ctx.json(Res(exe.activeCount))
+        }
         .start(port)
 }
 

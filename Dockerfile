@@ -5,7 +5,7 @@ WORKDIR /workdir
 COPY . .
 RUN chmod +x gradlew && ./gradlew shadowJar --no-daemon
 
-FROM --platform=$TARGETPLATFORM amazoncorretto:17-alpine as slim-jre
+FROM --platform=$TARGETPLATFORM eclipse-temurin:21-alpine as jlink
 COPY --from=build /workdir/build/libs/osrs-pathfinder-service-2-*-all.jar /service.jar
 RUN apk add --no-cache binutils
 RUN unzip /service.jar -d temp
@@ -29,7 +29,7 @@ RUN jlink \
 FROM --platform=$TARGETPLATFORM alpine
 WORKDIR /workdir
 EXPOSE 8080
-COPY --from=slim-jre /bindir/jre /bindir/jre
+COPY --from=jlink /bindir/jre /bindir/jre
 COPY --from=build /workdir/build/libs/osrs-pathfinder-service-2-*-all.jar /bindir/service.jar
 ENV JAVA_HOME=/bindir/jre
 ENV PATH="${JAVA_HOME}/bin:${PATH}"
