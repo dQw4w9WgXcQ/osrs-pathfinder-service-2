@@ -83,7 +83,7 @@ fun main() {
             config.plugins.enableCors { it ->
                 it.add {
                     it.reflectClientOrigin = true
-                    it.maxAge = 86400
+                    it.maxAge = 7200
                 }
             }
         }
