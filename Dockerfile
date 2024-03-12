@@ -5,7 +5,7 @@ WORKDIR /workdir
 COPY . .
 RUN chmod +x gradlew && ./gradlew shadowJar --no-daemon
 
-FROM --platform=$TARGETPLATFORM eclipse-temurin:17-alpine as jlink
+FROM --platform=$TARGETPLATFORM eclipse-temurin:21-alpine as jlink
 COPY --from=build /workdir/build/libs/osrs-pathfinder-service-2-*-all.jar /service.jar
 RUN apk add --no-cache binutils
 RUN unzip /service.jar -q -d temp
