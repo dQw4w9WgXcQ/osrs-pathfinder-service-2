@@ -16,8 +16,8 @@ repositories {
 
 dependencies {
     implementation("dev.dqw4w9wgxcq.pathfinder:commons:+")
-    implementation("dev.dqw4w9wgxcq.pathfinder:pathfinding:+")
-    implementation("io.javalin:javalin:5.6.3")
+    implementation("dev.dqw4w9wgxcq.pathfinder:pathfinder:+")
+    implementation("io.javalin:javalin:5.6.4")
     implementation("io.javalin.community.ssl:ssl-plugin:5.6.3")
     implementation("com.fasterxml.jackson.core:jackson-databind:2.15.0")
     implementation("com.fasterxml.jackson.module:jackson-module-kotlin:2.15.0")
@@ -27,8 +27,6 @@ dependencies {
 //    //https://github.com/jetty/jetty.project/issues/1894
 //    implementation("org.eclipse.jetty:jetty-alpn-server:11.0.17")
 //    implementation("org.eclipse.jetty:jetty-alpn-java-server:11.0.17")
-    implementation("com.squareup.okhttp3:okhttp:4.12.0")
-    implementation("com.google.code.gson:gson:2.10.1")
 
     runtimeOnly("org.slf4j:slf4j-simple:2.0.7")
 }
